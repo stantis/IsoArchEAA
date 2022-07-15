@@ -1,0 +1,212 @@
+---
+title: "IsoArch EAA"
+author:
+- name: Chris Stantis
+- name: Christina Cheung
+- name: Kevin Salesse
+- name: Damien Huffer
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r Setup, echo = F, warning = F}
+library(tidyverse)
+library(ggpubr)
+```
+
+This is the R Markdown notebook for my notes while analyzing the data we're working on for the EAA presentation on 31 August, 2022.
+
+This will have rough notes as the analysis progresses.
+
+# First Looks
+
+First off, what even is the Ancient Near East? Modern countries that include parts of this historic region include:
+
+-   Bahrain
+-   Cyprus
+-   Egypt
+-   Iran
+-   Israel
+-   Kuwait
+-   Lebanon
+-   Oman
+-   Palestine
+-   Qatar
+-   Saudi Arabia
+-   Sudan
+-   Syria
+-   Turkey
+-   United Arab Emirates
+-   Yemen
+
+When we use the UI to create a [new query](https://database.isoarch.eu/?p=query-new) on IsoArcH, several countries are not present on the drop-down menu. Only Egypt, Israel, Palestine, Sudan, Turkey, and Syria are listed.
+
+Damien's data that he put in for Data in Brief should be in there, but we can't search for anything in Bahrain or the UAE.
+
+Let's try downloading all human data and seeing what we have to work with.
+
+# All Countries
+
+*Note*: I changed the variables with /% symbols in their names to "perc" because R is **not** a fan of that symbol in a variable name. Using the Copy of the csv where % symbol was changed. Also changed Sr87/Sr86 to "Sr" to something more reasonable as well.
+
+Setting variable types manually as several numeric variables are getting improperly labelled as logical for some reason by R .
+
+```{r Import, echo = T, error = F, include = F}
+library(readr)
+all <- read_delim("isoarch_2022-07-14_15_36_45 - Copy.csv", 
+     ";", escape_double = FALSE, col_types = cols(
+  publications = col_character(),
+  siteName = col_character(),
+  siteType = col_character(),
+  country = col_character(),
+  region = col_character(),
+  town = col_character(),
+  lat = col_double(),
+  lon = col_double(),
+  distCoastKm = col_double(),
+  elevationM = col_double(),
+  refIndividualIsoarch = col_double(),
+  refIndividualInPubli = col_character(),
+  individualType = col_character(),
+  individualRelDatingLowerLimit = col_double(),
+  individualRelDatingUpperLimit = col_double(),
+  individualRelDatingIsReliable = col_character(),
+  individualAbsDatingMatIsOrganic = col_double(),
+  individualAbsDatingLabNum = col_character(),
+  individualAbsDatingConvAgeMean = col_double(),
+  individualAbsDatingConvAgeUncertainity = col_double(),
+  individualAbsDating2SigmaCalibratedResLowerLimit = col_double(),
+  humanSex = col_character(),
+  agePubliClassName = col_character(),
+  humanAgeClass = col_character(),
+  humanAgeEstimMin = col_double(),
+  humanAgeEstimMax = col_double(),
+  humanStatureCm = col_double(),
+  humanBonePreservLevel = col_logical(),
+  humanSkelRepresLevel = col_logical(),
+  funeraryStructNum = col_character(),
+  funeraryDepositionType = col_character(),
+  funeraryInhumationType1 = col_character(),
+  funeraryInhumationType2 = col_character(),
+  funeraryContainerType = col_character(),
+  funeraryBurialType1 = col_character(),
+  funeraryBurialType2 = col_character(),
+  funeraryInhumationPosition = col_logical(),
+  funeraryBodyOrientation = col_logical(),
+  faunaClass = col_logical(),
+  faunaOrder = col_logical(),
+  faunaFamily = col_logical(),
+  faunaSubfamily = col_logical(),
+  faunaGenus = col_logical(),
+  faunaSpecies = col_logical(),
+  plantMetabolism = col_logical(),
+  plantFamily = col_logical(),
+  plantGenus = col_logical(),
+  plantSpecies = col_logical(),
+  refSampleIsoarch = col_double(),
+  sampleType = col_character(),
+  sampleSubType = col_character(),
+  skelPart = col_character(),
+  teethCategory = col_character(),
+  teethType = col_character(),
+  teethNum = col_double(),
+  refMeasureOrganicIsoarch = col_double(),
+  d13C = col_double(),
+  d15N = col_double(),
+  d34S = col_double(),
+  percCol = col_double(),
+  percC = col_double(),
+  percN = col_double(),
+  `C/N` = col_double(),
+  measureOrganiclChronologicalOrder = col_double(),
+  dDOrganic = col_double(),
+  refMeasureMineralIsoarch = col_double(),
+  d13CCarb = col_double(),
+  d18OCarb = col_double(),
+  d13CPhos = col_logical(),
+  d18OPhos = col_double(),
+  dDMineral = col_logical(),
+  `Sr87/Sr86` = col_double(),
+  srConcentration = col_double(),
+  measureMineralChronologicalOrder = col_logical()
+), 
+     trim_ws = TRUE)
+```
+
+```{r Clean Strontium, include = F}
+all <- all %>% 
+  rename(Sr = "Sr87/Sr86")
+```
+
+```{r AllFirstLooks}
+all %>% 
+  group_by(country) %>% 
+  summarize(n = n())
+
+
+all %>% 
+  group_by(country) %>% 
+  summarize(total_d13C = sum(!is.na(d13C)),
+            total_d15N = sum(!is.na(d15N)), 
+            total_d34S = sum(!is.na(d34S)), 
+            total_d13CCarb = sum(!is.na(d13CCarb)), 
+            total_d18OCarb = sum(!is.na(d18OCarb)),
+            total_d18OPhos = sum(!is.na(d18OPhos)),
+            total_Sr = sum(!is.na(Sr)),
+            total_dDMineral = sum(!is.na(dDMineral)),
+            )
+```
+
+There are `r nrow(all)` humans currently in the IsoArcH database, from `r n_distinct(all$country)` countries.
+
+# Ancient Near East countries
+
+Let's filter down to those modern countries that would have been the ANE.
+
+```{r Filter Countries, echo = F, warning = F}
+ane <- subset(all, country == "Egypt"|country =="Israel"|country =="Palestine"|country =="Jordan"|country =="Lebanon"|country =="Turkey"|country =="Syria")
+```
+
+```{r ANE First Looks, echo = F, warning = F}
+count_summary <- ane %>% 
+  group_by(country) %>% 
+  summarize(total_d13C = sum(!is.na(d13C)),
+            total_d15N = sum(!is.na(d15N)), 
+           total_d34S = sum(!is.na(d34S)), 
+           total_d13CCarb = sum(!is.na(d13CCarb)), 
+           total_d18OCarb = sum(!is.na(d18OCarb)),
+           total_d18OPhos = sum(!is.na(d18OPhos)),
+          total_Sr = sum(!is.na(Sr)),
+ #        total_dDMineral = sum(!is.na(dDMineral)),
+            ) 
+
+long_count_summary <- reshape(data = count_summary, idvar = "country", 
+  varying = c("total_d13C", "total_d15N", "total_d34S", "total_d13CCarb", "total_d18OCarb", "total_d18OPhos", "total_Sr"), 
+  v.name = "total",
+  times = c("total_d13C", "total_d15N", "total_d34S", "total_d13CCarb", "total_d18OCarb", "total_d18OPhos", "total_Sr"),  
+  new.row.names = 1:1000,
+  direction = "long"
+)
+
+long_count_summary <- long_count_summary %>% 
+  rename(isotope = time)
+
+ggplot(data = long_count_summary, aes(x = country, y = total, fill = isotope
+      )
+      ) + 
+  geom_bar(stat="identity", position=position_dodge()) + 
+  theme_classic()
+
+ggplot(data = long_count_summary, aes(x = isotope, y = total
+      )
+      ) + 
+  geom_bar(stat="identity", position=position_dodge()) + 
+  theme_classic()
+```
+
+```{r CarbonNitrogen}
+ggplot(data = ane, aes(x = d13C, y = d15N, color = country)) + 
+ geom_point() + 
+ theme_classic()
+```
