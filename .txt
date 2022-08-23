@@ -1,0 +1,14 @@
+Okay, let's try to figure this whole clean data shit out. 
+
+First, our base file is C:\Users\chris\Documents\GitHub\IsoArcHEAA\isoarch_2022-08-09_16_48_25.csv
+
+If we put it into OpenRefine, we get 13350 records. 
+Errors include: 
+* refSampleIsoarch 15080 (two rows) where "Young child c. 2" should be the agePubliClassName but is divided into two. 
+* refSampleIsoarch 15082 (two rows) where "Young child c. 1-3" should be agePubliClassName
+* refSampleIsoarch 15095
+and more
+
+Facet "sampleType" to see several mistakes
+
+If we try to read the .csv through R...umm okay actually it works. Are you fucking kidding me. 

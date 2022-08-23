@@ -1,0 +1,74 @@
+[
+  {
+    "op": "core/column-rename",
+    "oldColumnName": "%Col",
+    "newColumnName": "percCol",
+    "description": "Rename column %Col to percCol"
+  },
+  {
+    "op": "core/column-rename",
+    "oldColumnName": "%C",
+    "newColumnName": "percC",
+    "description": "Rename column %C to percC"
+  },
+  {
+    "op": "core/column-rename",
+    "oldColumnName": "%N",
+    "newColumnName": "percN",
+    "description": "Rename column %N to percN"
+  },
+  {
+    "op": "core/column-rename",
+    "oldColumnName": "C/N",
+    "newColumnName": "CNRatio",
+    "description": "Rename column C/N to CNRatio"
+  },
+  {
+    "op": "core/column-rename",
+    "oldColumnName": "Sr87/Sr86",
+    "newColumnName": "Sr",
+    "description": "Rename column Sr87/Sr86 to Sr"
+  },
+  {
+    "op": "core/column-rename",
+    "oldColumnName": "d13C",
+    "newColumnName": "C_coll",
+    "description": "Rename column d13C to C_coll"
+  },
+  {
+    "op": "core/column-rename",
+    "oldColumnName": "d15N",
+    "newColumnName": "N",
+    "description": "Rename column d15N to N"
+  },
+  {
+    "op": "core/column-rename",
+    "oldColumnName": "d34S",
+    "newColumnName": "S",
+    "description": "Rename column d34S to S"
+  },
+  {
+    "op": "core/column-rename",
+    "oldColumnName": "d13CCarb",
+    "newColumnName": "C_carb",
+    "description": "Rename column d13CCarb to C_carb"
+  },
+  {
+    "op": "core/column-rename",
+    "oldColumnName": "d18OCarb",
+    "newColumnName": "O_carb",
+    "description": "Rename column d18OCarb to O_carb"
+  },
+  {
+    "op": "core/column-rename",
+    "oldColumnName": "d13CPhos",
+    "newColumnName": "C_phos",
+    "description": "Rename column d13CPhos to C_phos"
+  },
+  {
+    "op": "core/column-rename",
+    "oldColumnName": "d18OPhos",
+    "newColumnName": "O_phos",
+    "description": "Rename column d18OPhos to O_phos"
+  }
+]

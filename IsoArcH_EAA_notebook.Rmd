@@ -10,14 +10,16 @@ output:
     df_print: paged
 ---
 
-```{r Setup, echo = F, warning = F}
+
+This is the R Markdown notebook for the tables, graphs, and analyses I did while preparing for the EAA presentation in September 2022. You'll find everything in the PowerPoint presentation, plus a few extra treats ;) 
+
+```{r Setup}
+knitr::opts_chunk$set(echo = F, warning = F)
+# don't forget to install the below packages if you don't have them alredy.
 library(tidyverse)
 library(ggpubr)
+library(readr)
 ```
-
-This is the R Markdown notebook for my notes while analyzing the data we're working on for the EAA presentation on 31 August, 2022.
-
-This will have rough notes as the analysis progresses.
 
 # First Looks
 
@@ -27,6 +29,7 @@ First off, what even is the Ancient Near East? Modern countries that include par
 -   Cyprus
 -   Egypt
 -   Iran
+-   Iraq
 -   Israel
 -   Kuwait
 -   Lebanon
@@ -44,108 +47,44 @@ When we use the UI to create a [new query](https://database.isoarch.eu/?p=query-
 
 Damien's data that he put in for Data in Brief should be in there, but we can't search for anything in Bahrain or the UAE.
 
-Let's try downloading all human data and seeing what we have to work with.
+Let's try downloading all data (human, animal, plant) and seeing what we have to work with.
 
-# All Countries
-
-*Note*: I changed the variables with /% symbols in their names to "perc" because R is **not** a fan of that symbol in a variable name. Using the Copy of the csv where % symbol was changed. Also changed Sr87/Sr86 to "Sr" to something more reasonable as well.
-
-Setting variable types manually as several numeric variables are getting improperly labelled as logical for some reason by R .
-
-```{r Import, echo = T, error = F, include = F}
+```{r import, echo = T, error = F, include = F}
 library(readr)
-all <- read_delim("isoarch_2022-07-14_15_36_45 - Copy.csv", 
-     ";", escape_double = FALSE, col_types = cols(
-  publications = col_character(),
-  siteName = col_character(),
-  siteType = col_character(),
-  country = col_character(),
-  region = col_character(),
-  town = col_character(),
-  lat = col_double(),
-  lon = col_double(),
-  distCoastKm = col_double(),
-  elevationM = col_double(),
-  refIndividualIsoarch = col_double(),
-  refIndividualInPubli = col_character(),
-  individualType = col_character(),
-  individualRelDatingLowerLimit = col_double(),
-  individualRelDatingUpperLimit = col_double(),
-  individualRelDatingIsReliable = col_character(),
-  individualAbsDatingMatIsOrganic = col_double(),
-  individualAbsDatingLabNum = col_character(),
-  individualAbsDatingConvAgeMean = col_double(),
-  individualAbsDatingConvAgeUncertainity = col_double(),
-  individualAbsDating2SigmaCalibratedResLowerLimit = col_double(),
-  humanSex = col_character(),
-  agePubliClassName = col_character(),
-  humanAgeClass = col_character(),
-  humanAgeEstimMin = col_double(),
-  humanAgeEstimMax = col_double(),
-  humanStatureCm = col_double(),
-  humanBonePreservLevel = col_logical(),
-  humanSkelRepresLevel = col_logical(),
-  funeraryStructNum = col_character(),
-  funeraryDepositionType = col_character(),
-  funeraryInhumationType1 = col_character(),
-  funeraryInhumationType2 = col_character(),
-  funeraryContainerType = col_character(),
-  funeraryBurialType1 = col_character(),
-  funeraryBurialType2 = col_character(),
-  funeraryInhumationPosition = col_logical(),
-  funeraryBodyOrientation = col_logical(),
-  faunaClass = col_logical(),
-  faunaOrder = col_logical(),
-  faunaFamily = col_logical(),
-  faunaSubfamily = col_logical(),
-  faunaGenus = col_logical(),
-  faunaSpecies = col_logical(),
-  plantMetabolism = col_logical(),
-  plantFamily = col_logical(),
-  plantGenus = col_logical(),
-  plantSpecies = col_logical(),
-  refSampleIsoarch = col_double(),
-  sampleType = col_character(),
-  sampleSubType = col_character(),
-  skelPart = col_character(),
-  teethCategory = col_character(),
-  teethType = col_character(),
-  teethNum = col_double(),
-  refMeasureOrganicIsoarch = col_double(),
-  d13C = col_double(),
-  d15N = col_double(),
-  d34S = col_double(),
-  percCol = col_double(),
-  percC = col_double(),
-  percN = col_double(),
-  `C/N` = col_double(),
-  measureOrganiclChronologicalOrder = col_double(),
-  dDOrganic = col_double(),
-  refMeasureMineralIsoarch = col_double(),
-  d13CCarb = col_double(),
-  d18OCarb = col_double(),
-  d13CPhos = col_logical(),
-  d18OPhos = col_double(),
-  dDMineral = col_logical(),
-  `Sr87/Sr86` = col_double(),
-  srConcentration = col_double(),
-  measureMineralChronologicalOrder = col_logical()
-), 
-     trim_ws = TRUE)
+human <- read_delim("isoarch_2022-08-09_16_48_25.csv", 
+     ";", trim_ws = TRUE)
+
+animal <- read_delim("isoarch_2022-08-09_13_35_51.csv", 
+      ";", trim_ws = TRUE)
+
+plant <- read_delim("isoarch_2022-08-09_13_10_53.csv",
+      ";", trim_ws = TRUE)
 ```
 
-```{r Clean Strontium, include = F}
-all <- all %>% 
-  rename(Sr = "Sr87/Sr86")
+This code below renames variables with slashes because R is *not* a fan of those. 
+
+```{r cleanSrName, include = F}
+human <- human %>% 
+  rename(Sr = "Sr87/Sr86", 
+         CNratio = "C/N")
+
+animal <- animal %>% 
+  rename(Sr = "Sr87/Sr86", 
+         CNratio = "C/N")
+
+plant <- plant %>% 
+  rename(Sr = "Sr87/Sr86", 
+         CNratio = "C/N")
 ```
 
-```{r AllFirstLooks}
-all %>% 
+Let's take a quick peek at what human data is available. 
+```{r humanFirstLooks}
+human %>% 
   group_by(country) %>% 
   summarize(n = n())
 
 
-all %>% 
+human %>% 
   group_by(country) %>% 
   summarize(total_d13C = sum(!is.na(d13C)),
             total_d15N = sum(!is.na(d15N)), 
@@ -154,37 +93,57 @@ all %>%
             total_d18OCarb = sum(!is.na(d18OCarb)),
             total_d18OPhos = sum(!is.na(d18OPhos)),
             total_Sr = sum(!is.na(Sr)),
-            total_dDMineral = sum(!is.na(dDMineral)),
+            total_dDMineral = sum(!is.na(dDMineral))
             )
 ```
+These are the color palettes for the graphs I'll be making.
 
-There are `r nrow(all)` humans currently in the IsoArcH database, from `r n_distinct(all$country)` countries.
+```{r colorPalette}
+custom.col <- c("#5D3A9B", "#D823AC", "#9E77E2", "#DE9ACE", "#635C61", "#E4C787", "#E66100")
+```
+
+There are `r nrow(human)` humans currently in the IsoArcH database, from `r n_distinct(human$country)` countries.
 
 # Ancient Near East countries
 
-Let's filter down to those modern countries that would have been the ANE.
+Let's filter down to those modern countries that would have been the ANE. We'll also create a variable called humanAgeEstimAvg. This is a little tricky, because in instances where only one number was proffered, it's the humanAgeEstimMin. So, time for the if/else statements.
 
 ```{r Filter Countries, echo = F, warning = F}
-ane <- subset(all, country == "Egypt"|country =="Israel"|country =="Palestine"|country =="Jordan"|country =="Lebanon"|country =="Turkey"|country =="Syria")
+ane <- subset(human, country == "Egypt"|country =="Israel"|country =="Palestine"|country =="Jordan"|country =="Lebanon"|country =="Turkey"|country =="Syria")
+
+ane <- select(ane,-c("dDMineral")) # With no dD done to date in the region, I'm dropping the variable. 
+
+ane$humanAgeEstimAvg = ifelse(is.na(ane$humanAgeEstimMax),
+                              ane$humanAgeEstimMin, 
+                              (ane$humanAgeEstimMin+ane$humanAgeEstimMax)/2
+)
 ```
+
 
 ```{r ANE First Looks, echo = F, warning = F}
 count_summary <- ane %>% 
   group_by(country) %>% 
   summarize(total_d13C = sum(!is.na(d13C)),
             total_d15N = sum(!is.na(d15N)), 
-           total_d34S = sum(!is.na(d34S)), 
+   # none to date       total_d34S = sum(!is.na(d34S)), 
            total_d13CCarb = sum(!is.na(d13CCarb)), 
            total_d18OCarb = sum(!is.na(d18OCarb)),
-           total_d18OPhos = sum(!is.na(d18OPhos)),
-          total_Sr = sum(!is.na(Sr)),
- #        total_dDMineral = sum(!is.na(dDMineral)),
-            ) 
+  #  none to date        total_d18OPhos = sum(!is.na(d18OPhos)),
+          total_Sr = sum(!is.na(Sr)))
+          
 
 long_count_summary <- reshape(data = count_summary, idvar = "country", 
-  varying = c("total_d13C", "total_d15N", "total_d34S", "total_d13CCarb", "total_d18OCarb", "total_d18OPhos", "total_Sr"), 
+  varying = c("total_d13C", "total_d15N",
+              #"total_d34S",
+              "total_d13CCarb", "total_d18OCarb",
+              #"total_d18OPhos", 
+              "total_Sr"), 
   v.name = "total",
-  times = c("total_d13C", "total_d15N", "total_d34S", "total_d13CCarb", "total_d18OCarb", "total_d18OPhos", "total_Sr"),  
+  times = c("total_d13C", "total_d15N",
+            #"total_d34S", 
+            "total_d13CCarb", "total_d18OCarb",
+            #"total_d18OPhos", 
+            "total_Sr"),  
   new.row.names = 1:1000,
   direction = "long"
 )
@@ -192,21 +151,259 @@ long_count_summary <- reshape(data = count_summary, idvar = "country",
 long_count_summary <- long_count_summary %>% 
   rename(isotope = time)
 
-ggplot(data = long_count_summary, aes(x = country, y = total, fill = isotope
-      )
+
+```
+
+# Humans
+```{r isotopesWhich}
+ggplot(data = long_count_summary, aes(x = country, y = total, fill = isotope)
       ) + 
+  scale_fill_manual(values = custom.col,
+                    labels = c("d13C", "d13CCarb", "d15N", "d18O", "Sr")
+                    ) + 
   geom_bar(stat="identity", position=position_dodge()) + 
-  theme_classic()
+  theme_classic() + 
+  labs(
+    x= "Country", 
+    y = "Total", 
+    fill = "Isotope System"
+  )
 
 ggplot(data = long_count_summary, aes(x = isotope, y = total
       )
       ) + 
   geom_bar(stat="identity", position=position_dodge()) + 
-  theme_classic()
+    theme_classic()
 ```
 
-```{r CarbonNitrogen}
-ggplot(data = ane, aes(x = d13C, y = d15N, color = country)) + 
- geom_point() + 
- theme_classic()
+Oof wow, there's major bias towards carbon and nitrogen stable isotopes from Egypt. Of the ```r sum(long_count_summary$total)``` isotopic measurements in the ane dataset, ```r subset(long_count_summary, country == 'Egypt' & isotope == 'total_d13C')$total + subset(long_count_summary, country == 'Egypt' & isotope == 'total_d15N')$total``` are C&N from Egypt. 
+
+In fact, 1309 observations are from the sites of Kellis 1 and 2 alone!
+
+## What's our timing? 
+
+```{r creating timingAvg}
+ane$individualRelDatingAvg <- (ane$individualRelDatingLowerLimit + ane$individualRelDatingUpperLimit)/2
+# Created a DatingDiff variable to understand range in dating
+ane$individualRelDatingDiff <- ane$individualRelDatingUpperLimit - ane$individualRelDatingLowerLimit
 ```
+
+We have two graphs here. The first shows largely what time the samples are associated with, which is a median of ```r median(subset(ane, !is.na(individualRelDatingAvg))$individualRelDatingAvg)```. 
+
+We can also see the general range of values in the age estimation which often ranges 500 years. 
+
+```{r timing}
+ggplot(data = ane, aes(x = individualRelDatingAvg)) + 
+  geom_histogram(fill ="#5D3A9B") + 
+  theme_classic() + 
+  labs(x = "Time (CE)", 
+       y = "Count")
+
+
+ggplot(data = ane, aes(x = individualRelDatingDiff)) + 
+  geom_histogram(fill ="#5D3A9B") + 
+  theme_classic()
+
+```
+
+## Carbon and Nitrogen
+I've talked about it before in a previous paper (Stantis et al. 2020), but it is fun to see just how much the nitrogen values differ in Egypt due to aridity and how that might be used as evidence of movement across the region. 
+
+```{r carbonNitrogen}
+ggplot(data = ane, aes(x = d13C, y = d15N, color = country)) + 
+ geom_point(size = 3) + 
+ scale_color_manual(values = custom.col) + 
+ theme_classic()
+
+ggplot(data = ane, aes(x = country, y = d15N, color = country)) + 
+  geom_jitter(size = 2) + 
+  scale_color_manual(values = custom.col) +
+  theme_classic() + 
+  theme(legend.position = 'none') +
+  labs(
+    x = "Country",
+    y = expression(paste(delta^15, "N", " (\u2030, AIR)"))
+  )
+
+ggplot(data = ane, aes(x = country, y = d13C, color = country)) + 
+ geom_jitter() + 
+  scale_color_manual(values = custom.col) + 
+ theme_classic()
+
+```
+
+When we pull modern precipitation data for these sites, we can see why there are certain patterns. Egypt generally has incredibly low precipitation compared to other areas included in here. We know that there's similarly low rainfall areas throughout the Levant, including Petra (average precipitation 40 mm/year). 
+
+```{r Precipitation}
+precipitation <- read_csv("precipitation.csv")
+
+precip <- merge(x = ane, y = precipitation, by = c("siteName"))
+
+ggplot(data = precip,
+       aes(x = precipitation_local, y = d15N),
+       size = 3) + 
+  geom_point()
+
+
+ggplot(subset(precip, country.x == "Jordan" & !is.na(d15N)), aes(x = siteName, y = d15N)) +
+  geom_jitter() + 
+  theme_classic()
+
+```
+
+
+
+Here's the Egyptian carbon and nitrogen data, as well as Kellis on its own by tissue type. 
+
+```{r egyptCN}
+egyptCN <- subset(ane, country == "Egypt" & !is.na(d13C))
+
+ggplot(data = egyptCN,
+       aes(x = d13C, y = d15N, color = sampleType, shape = siteName),
+       size = 3) + 
+  geom_point() +   
+  scale_color_manual(values = custom.col) +
+  theme_classic() + 
+  labs(
+    x = expression(paste(delta^13, "C", " (\u2030, VPDB)")), 
+    y = expression(paste(delta^15, "N", " (\u2030, AIR)")), 
+    shape = "Site", 
+    color = "Tissue Type"
+  )
+
+ggplot(data = subset(egyptCN, siteName == "Kellis 1" | siteName == "Kellis 2"),
+       aes(x = d13C, y = d15N, color = sampleType, shape = siteName)) + 
+  geom_point(size = 3) + 
+  scale_color_manual(values = custom.col) +
+  theme_classic() + 
+  labs(
+    x = expression(paste(delta^13, "C", " (\u2030, VPDB)")), 
+    y = expression(paste(delta^15, "N", " (\u2030, AIR)")), 
+    shape = "Site", 
+    color = "Tissue Type"
+  )
+
+```
+
+## Kellis
+Let's look at Kellis a little more in-depth. 
+
+If you want to see the WARN model I created for Kellis, check out warn.R in this GitHub repository. That will have what you need to model, *after* you've set up the code in this Markdown doc. 
+
+There are all the carbon and nitrogen values at Kellis for bone (pink) and hair (purple).  
+
+```{r kellisTissue}
+kellisTissue <- subset(egyptCN, siteName == "Kellis 1" | siteName == "Kellis 2")
+
+kellisTissue <- subset(kellisTissue, sampleType == "Bone" | sampleType == "Hair")
+
+kellisTissue <- subset(kellisTissue, select = c(refIndividualInPubli, d13C, d15N, sampleType))
+
+kellisHair <- subset(kellisTissue, sampleType == "Hair" & !is.na(d15N)) %>% 
+  group_by(refIndividualInPubli) %>% 
+  summarise(d13Cmean = mean(d13C), 
+            d15Nmean = mean(d15N)) %>% 
+  rename(d13C = d13Cmean, 
+         d15N = d15Nmean)
+
+
+kellisBone <- subset(kellisTissue, sampleType == "Bone" & !is.na(d15N))
+
+kellisCompare <- merge(kellisHair, kellisBone, by = c("refIndividualInPubli")) %>% 
+  rename(CHair = d13C.x, 
+         NHair = d15N.x, 
+         CBone = d13C.y, 
+         NBone = d15N.y)
+
+kellisCompare$diffC <- kellisCompare$CBone - kellisCompare$CHair
+kellisCompare$diffN <- kellisCompare$NBone - kellisCompare$NHair 
+
+
+ggplot() + 
+  geom_point(data = kellisCompare, aes(CHair, NHair), color = "#5D3A9B", size = 3) + 
+  geom_point(data = kellisCompare, aes(CBone, NBone), color = "#D823AC", size = 3) + 
+  theme_classic() + 
+  labs(
+      x = expression(paste(delta^13, "C", " (\u2030, VPDB)")), 
+    y = expression(paste(delta^15, "N", " (\u2030, AIR)"))
+  )
+```
+
+With the data frame `kellisCompare` we're able to compare hair and bone tissue from the same individuals. We see ```r mean(kellisCompare$diffC)``` average enrichment for carbon between bone and hair, and ```r mean(kellisCompare$diffN)``` for nitrogen stable isotopes. The carbon enrichment is much lower than observed in O'Connell et al., who found 1.4 per mill average enrichment. They found 0.86 per mill average enrichment in nitrogen, so that is similar. 
+
+While O'Connell et al. had eight pairings, and we have 49. Though it is also worth noting the O'Connell asked their live subjects if their diet had differed significantly. 
+
+
+```{r SrO}
+ggplot(data = ane, aes(x = d18OCarb, y = Sr, color = country)) + 
+ geom_point() + 
+  scale_color_manual(values = custom.col) +
+ theme_classic()
+
+ggplot(data = ane, aes(x = country, y = d18OCarb, color = country)) + 
+  scale_color_manual(values = custom.col) +
+ geom_jitter() + 
+ theme_classic()
+
+ggplot(data = ane, aes(x = country, y = Sr, color = country)) + 
+ geom_jitter() + 
+  scale_color_manual(values = custom.col) +
+ theme_classic()
+
+```
+
+
+# Plants
+
+The plants are ALL from Egypt so that's easy! Only carbon and nitrogen
+
+```{r plants}
+aneplant <- subset(plant, country == "Egypt"|country =="Israel"|country =="Palestine"|country =="Jordan"|country =="Lebanon"|country =="Turkey"|country =="Syria")
+
+plant_count_summary <- aneplant %>%  
+  summarize(total_d13C = sum(!is.na(d13C)),
+            total_d15N = sum(!is.na(d15N)))
+
+```
+
+# Animals
+
+```{r animals}
+aneanimal <- subset(animal, country == "Egypt"|country =="Israel"|country =="Palestine"|country =="Jordan"|country =="Lebanon"|country =="Turkey"|country =="Syria")
+
+animal_count_summary <- aneanimal %>%  
+  group_by(country) %>% 
+  summarize(total_d13C = sum(!is.na(d13C)),
+            total_d15N = sum(!is.na(d15N)), 
+           total_d34S = sum(!is.na(d34S)), 
+           total_d13CCarb = sum(!is.na(d13CCarb)), 
+           total_d18OCarb = sum(!is.na(d18OCarb)),
+           total_d18OPhos = sum(!is.na(d18OPhos)),
+          total_Sr = sum(!is.na(Sr)))
+
+```
+
+There's a lot of animal samples with poor preservation values, so we're subsetting the data. 
+
+```{r animalsGraph}
+ggplot(data = subset(aneanimal, CNratio > 2.5 & CNratio < 4.0), aes(x = d13C, y = d15N, color = faunaGenus)) + 
+ geom_point(size = 3) + 
+#scale_color_manual(values = custom.col) + 
+ theme_classic() + 
+  labs(
+    color = "Genus", 
+    x = expression(paste(delta^13, "C", " (\u2030, VPDB)")), 
+    y = expression(paste(delta^15, "N", " (\u2030, AIR)")), 
+  )
+
+ggplot(data = subset(aneanimal, !is.na(Sr)), aes(x = siteName, y = Sr, color = country)) + 
+ geom_jitter(size = 3) + 
+ theme_classic() + 
+ scale_color_manual(values = custom.col) + 
+ theme(axis.text.x = element_text(angle = 90)
+ )
+  
+```
+
+# Maps!
+For the maps, you'll need some more packages. Because of that, I'm putting the maps on another .R script, "MappingOutput.R".

@@ -1,0 +1,163 @@
+---
+title: "WARN in the Ancient Near East"
+output: html_notebook
+---
+
+```{r Setup}
+knitr::opts_chunk$set(echo = F, warning = F)
+# don't forget to install the below packages if you don't have them alredy.
+library(tidyverse)
+library(ggpubr)
+library(WARN)
+```
+
+```{r import, echo = T, error = F, include = F}
+library(readr)
+all <- read_delim("isoarch_2022-08-09_16_48_25.csv", 
+     ";", trim_ws = TRUE)
+
+all <- all %>% 
+  rename(Sr = "Sr87/Sr86", 
+         CNratio = "C/N")
+
+ane <- subset(all, country == "Egypt"|country =="Israel"|country =="Palestine"|country =="Jordan"|country =="Lebanon"|country =="Turkey"|country =="Syria")
+
+ane$humanAgeEstimAvg = ifelse(is.na(ane$humanAgeEstimMax),
+                              ane$humanAgeEstimMin, 
+                              (ane$humanAgeEstimMin+ane$humanAgeEstimMax)/2
+)
+
+
+
+```
+
+```{r babiesOnly}
+babies <- subset(ane, !is.na(d15N), select = c(siteName, country, humanAgeEstimAvg, d15N, humanAgeClass, humanSex, refIndividualInPubli)) 
+
+```
+
+These sites have five or more individuals less than 10 years of age, so we'll give WARN a shot with them. 
+
+```{r lessThan}
+table(subset(ane, humanAgeEstimAvg < 10)$siteName)
+```
+
+You can give Petra a shot for WARN. Unfortunately, there are only three non-adults with nitrogen values and so that doesn't work out well. 
+
+```{r warnPetra}
+grotte <- subset(ane, siteName == "Grotte Ambre")
+#no wait Grotte Ambre is in Belgium this is an error. NEXT
+
+hierapolis <- subset(ane, siteName == "Hierapolis" & sampleType == "Bone")
+#stupid smol this helps no one
+
+petra <- subset(ane, siteName == "Petra" & sampleType == "Bone")
+
+nonadult <- subset(petra, humanAgeEstimAvg <= 10)
+#nonadult$humanAgeEstimAvg <- as.numeric(as.character(nonadult$humanAgeEstimAvg))
+adult <- subset(petra, humanAgeClass == "Adult")
+female <- subset(adult, !is.na(d15N) & humanSex == "Female" & CNratio > 2.9 & CNratio < 4.5)
+female.mean = mean(female$d15N)
+
+warn.Petra <- warn(
+  age = nonadult$humanAgeEstimAvg, 
+  d15N = nonadult$d15N, 
+  female.mean = mean(female$d15N),
+ prior = c(0.5, 0.5, 3, 1, 1.9, 0.9, female.mean, 3, 0, 1),
+  female.sd = sd(female$d15N), 
+  num.particle = 10000
+ #above is redundant as that's default
+ )
+
+warn.Petra_or <- warn(
+  age = nonadult$humanAgeEstimAvg, 
+  d15N = nonadult$d15N, 
+  female.mean = mean(female$d15N),
+# prior = c(0.5, 0.5, 3, 1, 1.9, 0.9, female.mean, 3, 0, 1),
+  female.sd = sd(female$d15N), 
+  num.particle = 10000
+ #above is redundant as that's default
+ )
+
+#simple plot
+plot(warn.Petra_or,
+     #  hline.adult = F,
+     #   adult.mean = mean(adult$N),
+     #  adult.sd = sd(adult$N),
+     is.female = T, 
+     ylim = c(4, 16),
+     xlab = "Age (years)", 
+     ylab = expression(paste(delta^15, "N"[collagen], " (\u2030, AIR)")),
+     main = "Petra")
+
+```
+
+```{r warnKellis}
+kellis <- subset(ane, siteName == "Kellis 1" | siteName == "Kellis 2" & sampleType == "Bone")
+nonadult <- subset(kellis, humanAgeEstimAvg <= 10)
+adult <- subset(kellis, humanAgeClass == "Adult")
+female <- subset(adult, !is.na(d15N) & adult$humanSex == "Female")
+female.mean = mean(female$d15N)
+
+warn.Kellis <- warn(
+  age = nonadult$humanAgeEstimAvg, 
+  d15N = nonadult$d15N, 
+  female.mean = mean(female$d15N),
+ prior = c(0.5, 0.5, 3, 1, 1.9, 0.9, female.mean, 3, 0, 1),
+  female.sd = sd(female$d15N)
+ )
+
+warn.Kellis_or <- warn(
+  age = nonadult$humanAgeEstimAvg, 
+  d15N = nonadult$d15N, 
+  female.mean = mean(female$d15N),
+# prior = c(0.5, 0.5, 3, 1, 1.9, 0.9, female.mean, 3, 0, 1),
+  female.sd = sd(female$d15N)
+ )
+
+summary(warn.Kellis)
+summary(warn.Kellis_or)
+```
+
+```{r warnSummaries}
+
+## Indicate summary.
+summary(warn.Kellis)
+
+#simple plot
+plot(warn.Kellis,
+     #  hline.adult = F,
+     #   adult.mean = mean(adult$N),
+     #  adult.sd = sd(adult$N),
+     is.female = T, 
+     ylim = c(15, 24),
+     xlab = "Age (years)", 
+     ylab = expression(paste(delta^15, "N"[collagen], " (\u2030, AIR)")),
+     main = "Kellis, altered priors")
+
+
+
+Kellis.CI <- warnCI(warn.Kellis, 0.95)
+plot(Kellis.CI, "age", 
+     xlab = expression("t"[1]~"(years)"), 
+     ylab = expression("t"[2]~"(years)"),
+     main = "Kellis")
+Kellis.CI
+
+plot(warn.Kellis_or,
+     #  hline.adult = F,
+     #   adult.mean = mean(adult$N),
+     #  adult.sd = sd(adult$N),
+     is.female = T, 
+     ylim = c(15, 24),
+     xlab = "Age (years)", 
+     ylab = expression(paste(delta^15, "N"[collagen], " (\u2030, AIR)")),
+     main = "Kellis, original priors")
+
+Kellis.CI_or <- warnCI(warn.Kellis_or, 0.95)
+plot(Kellis.CI_or, "age", 
+     xlab = expression("t"[1]~"(years)"), 
+     ylab = expression("t"[2]~"(years)"),
+     main = "Kellis, original variables")
+Kellis.CI_or
+```
