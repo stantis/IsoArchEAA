@@ -51,13 +51,13 @@ Let's try downloading all data (human, animal, plant) and seeing what we have to
 
 ```{r import, echo = T, error = F, include = F}
 library(readr)
-human <- read_delim("isoarch_2022-08-09_16_48_25.csv", 
+human <- read_delim("data/isoarch_2022-08-09_16_48_25.csv", 
      ";", trim_ws = TRUE)
 
-animal <- read_delim("isoarch_2022-08-09_13_35_51.csv", 
+animal <- read_delim("data/isoarch_2022-08-09_13_35_51.csv", 
       ";", trim_ws = TRUE)
 
-plant <- read_delim("isoarch_2022-08-09_13_10_53.csv",
+plant <- read_delim("data/isoarch_2022-08-09_13_10_53.csv",
       ";", trim_ws = TRUE)
 ```
 
@@ -77,6 +77,15 @@ plant <- plant %>%
          CNratio = "C/N")
 ```
 
+```{r combine}
+all <- rbind(human, animal, plant) %>% 
+  subset(country == "Egypt"|country =="Israel"|country =="Palestine"|country =="Jordan"|country =="Lebanon"|country =="Turkey"|country =="Syria")
+
+all$individualRelDatingAvg <- (all$individualRelDatingLowerLimit + all$individualRelDatingUpperLimit)/2
+# Created a DatingDiff variable to understand range in dating
+all$individualRelDatingDiff <- all$individualRelDatingUpperLimit - all$individualRelDatingLowerLimit
+
+```
 Let's take a quick peek at what human data is available. 
 ```{r humanFirstLooks}
 human %>% 
@@ -121,7 +130,7 @@ ane$humanAgeEstimAvg = ifelse(is.na(ane$humanAgeEstimMax),
 
 
 ```{r ANE First Looks, echo = F, warning = F}
-count_summary <- ane %>% 
+count_summary <- all %>% 
   group_by(country) %>% 
   summarize(total_d13C = sum(!is.na(d13C)),
             total_d15N = sum(!is.na(d15N)), 
@@ -193,17 +202,36 @@ We have two graphs here. The first shows largely what time the samples are assoc
 We can also see the general range of values in the age estimation which often ranges 500 years. 
 
 ```{r timing}
-ggplot(data = ane, aes(x = individualRelDatingAvg)) + 
+A <- ggplot(data = all, aes(x = individualRelDatingAvg)) + 
   geom_histogram(fill ="#5D3A9B") + 
   theme_classic() + 
-  labs(x = "Time (CE)", 
+  labs(x = "Time (BCE/CE)", 
        y = "Count")
 
 
-ggplot(data = ane, aes(x = individualRelDatingDiff)) + 
-  geom_histogram(fill ="#5D3A9B") + 
-  theme_classic()
+B <- ggplot(data = all, aes(x = individualRelDatingDiff)) + 
+  geom_histogram(fill ="#D823AC") + 
+  theme_classic() + 
+    labs(x = expression(paste(Delta," Lower and Upper Date Range")), 
+       y = "Count")
 
+ggarrange(A, B, nrow = 2, ncol = 1, labels = 'auto')
+ggsave("figures/chronology.tiff", dpi = 300)
+
+ggplot(data = long_count_summary, aes(x = country, y = total, fill = isotope)
+      ) + 
+  scale_fill_manual(values = custom.col,
+                    labels = c("d13C", "d13CCarb", "d15N", "d18O", "Sr")
+                    ) + 
+  geom_bar(stat="identity", position=position_dodge()) + 
+  theme_classic() + 
+  labs(
+    x= "Country", 
+    y = "Total", 
+    fill = "Isotope System"
+  ) + 
+  theme(legend.position = 'bottom')
+ggsave("figures/systems.pdf", dpi = 300)
 ```
 
 ## Carbon and Nitrogen
